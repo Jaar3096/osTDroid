@@ -52,7 +52,7 @@ public class Ticket
 
         }
 
-        public void view()
+        public String view()
         {
                 String dbid;
                 String DIR      = "data/thread";
@@ -67,7 +67,7 @@ public class Ticket
 
                 if (dbid == null || !dbid.matches("[0-9]+")) {
                         Log.e("ticket", "database id not valid");
-                        return;
+                        return null;
                 }
 
                 try {
@@ -77,19 +77,19 @@ public class Ticket
                         if (!dbid.equals(this.dbid)) {
                                 this.dbid =  dbid;
                                 if (!save())
-                                        return;
+                                        return null;
                         }
 
                         if (!dir.exists())
                                 if (!dir.mkdirs()) {
                                         Log.e("ticket", "error creating data directory");
-                                        return;
+                                        return null;
                                 }
 
                         if (!f.exists())
                                 if (!f.createNewFile()) {
                                         Log.e("ticket", "Error creating ticket thread file");
-                                        return;
+                                        return null;
                                 }
 
                         StringBuffer buf = new StringBuffer();
@@ -108,7 +108,7 @@ public class Ticket
                         String remote = get_thread(scp.config.get("url") + "/tickets.php?id=" + dbid);
                         if (remote == null) {
                                 Log.e("ticket", "Get ticket thread returns null");
-                                return;
+                                return null;
                         }
 
                         if (remote.length() > local.length()) {
@@ -117,9 +117,11 @@ public class Ticket
                                 fw.flush();
                                 fw.close();
                         }
+
+                        return remote;
                 } catch (Exception e) {
                         Log.e("ticket", "error create ticket thread file");
-                        return;
+                        return null;
                 }
         }
 
