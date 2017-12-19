@@ -175,15 +175,21 @@ public class http {
 
         public static String get(String url) throws Exception {
                 int response = 0;
+                StringBuffer html = null;
 
-                if (!set_conn(url))
+                if (!set_conn(url)) {
+                        if (scp.DEBUG)
+                                Log.d(TAG, "Error setting connection");
                         return null;
+                }
 
                 if (conn instanceof HttpURLConnection) {
                         HttpURLConnection connPlain = (HttpURLConnection) conn;
                         connPlain.setRequestMethod("GET");
                         connPlain.setUseCaches(true);
                         connPlain.setRequestProperty("User-Agent", USER_AGENT);
+                        connPlain.setFollowRedirects(true);
+                        connPlain.setInstanceFollowRedirects(true);
         
 	                connPlain.setRequestProperty("Accept",
 		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
@@ -197,7 +203,7 @@ public class http {
 	                BufferedReader stream =
                         new BufferedReader(new InputStreamReader(connPlain.getInputStream()));
 	                String ln;
-	                StringBuffer html = new StringBuffer();
+	                html = new StringBuffer();
         
 	                while ((ln = stream.readLine()) != null) {
 		                html.append(ln + "\n");
@@ -216,14 +222,14 @@ public class http {
                                         cookie_exp = str[1].split("=")[1];
                                 }
                         }
-
-	                return html.toString();
                 }
                 if (conn instanceof HttpsURLConnection) {
                         HttpsURLConnection connSsl = (HttpsURLConnection) conn;
                         connSsl.setRequestMethod("GET");
                         connSsl.setUseCaches(false);
                         connSsl.setRequestProperty("User-Agent", USER_AGENT);
+                        connSsl.setFollowRedirects(true);
+                        connSsl.setInstanceFollowRedirects(true);
         
 	                connSsl.setRequestProperty("Accept",
 		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
@@ -238,7 +244,7 @@ public class http {
 	                BufferedReader stream =
                         new BufferedReader(new InputStreamReader(connSsl.getInputStream()));
 	                String ln;
-	                StringBuffer html = new StringBuffer();
+	                html = new StringBuffer();
         
 	                while ((ln = stream.readLine()) != null) {
 		                html.append(ln + "\n");
@@ -257,9 +263,10 @@ public class http {
                                         cookie_exp = str[1].split("=")[1];
                                 }
                         }
-
-	                return html.toString();
                 }
+                
+                if (html != null)
+                        return html.toString();
 
                 if (scp.DEBUG)
                         Log.d(TAG, "Connection is not HttpURLConnection nor HttpsURLConnection");

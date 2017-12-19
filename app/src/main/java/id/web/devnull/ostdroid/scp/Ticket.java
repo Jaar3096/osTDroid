@@ -15,6 +15,7 @@ import org.jsoup.select.Elements;
 
 public class Ticket
 {
+        private static final String TAG = "osTDroid";
         public String tid;              /* Ticket id */
         public String dbid;             /* Ticket database id */
         public String date;             /* Created date */
@@ -55,72 +56,32 @@ public class Ticket
         public String view()
         {
                 String dbid;
-                String DIR      = "data/thread";
-                String FILE     = DIR + "/" + this.tid; 
-
-                File f;
-                File dir;
-
-                if (this.dbid.length() == 0)
+                if (this.dbid == null || this.dbid.length() == 0)
                         dbid = get_dbid(this.tid);
                 else    dbid = this.dbid;
 
                 if (dbid == null || !dbid.matches("[0-9]+")) {
-                        Log.e("ticket", "database id not valid");
+                        Log.e(TAG, "database id not valid");
                         return null;
                 }
 
                 try {
-                        f = new File(FILE);
-                        dir = new File(DIR);
-                        
                         if (!dbid.equals(this.dbid)) {
                                 this.dbid =  dbid;
                                 if (!save())
                                         return null;
                         }
 
-                        if (!dir.exists())
-                                if (!dir.mkdirs()) {
-                                        Log.e("ticket", "error creating data directory");
-                                        return null;
-                                }
-
-                        if (!f.exists())
-                                if (!f.createNewFile()) {
-                                        Log.e("ticket", "Error creating ticket thread file");
-                                        return null;
-                                }
-
-                        StringBuffer buf = new StringBuffer();
-                        buf.append("null");
-
-                        BufferedReader inbuf = new BufferedReader(new FileReader(FILE));
-
-
-                        String ln;
-                        while ((ln = inbuf.readLine()) != null)
-                                buf.append(ln + "\n");
-
-                        inbuf.close();
-
-                        String local = buf.toString();
                         String remote = get_thread(scp.config.get("url") + "/tickets.php?id=" + dbid);
                         if (remote == null) {
-                                Log.e("ticket", "Get ticket thread returns null");
+                                Log.e(TAG, "Get ticket thread returns null");
                                 return null;
                         }
 
-                        if (remote.length() > local.length()) {
-                                FileWriter fw = new FileWriter(f);
-                                fw.write(remote);
-                                fw.flush();
-                                fw.close();
-                        }
-
                         return remote;
+
                 } catch (Exception e) {
-                        Log.e("ticket", "error create ticket thread file");
+                        Log.e(TAG, "error create ticket thread file");
                         return null;
                 }
         }
@@ -131,7 +92,7 @@ public class Ticket
                         db.put(this.tid, this);
                         return true;
                 } catch (Exception e) {
-                        Log.e("ticket", "Error writing ticket to db");
+                        Log.e(TAG, "Error writing ticket to db");
                         return false;
                 }
         }
@@ -143,7 +104,7 @@ public class Ticket
 
                 String html = http.get(url);
                 if (html == null) {
-                        Log.e("ticket", "get ticket thread error");
+                        Log.e(TAG, "get ticket thread error");
                         return null;
                 }
 
@@ -159,13 +120,16 @@ public class Ticket
                 String url = scp.config.get("url");
                 List<String> params = new ArrayList<String>();
                 String srch_url;
+                Document doc = null;
 
                 try {
                         String html = http.get(url);
                         if (html == null)
                                 return null;
 
-                        Document doc = Jsoup.parse(html);
+                        if (scp.DEBUG)
+                                Log.d(TAG, "parse search form from " + url);
+                        doc = Jsoup.parse(html);
                         Element form = doc.getElementById(srch_tag);
                         Elements inputs = form.getElementsByTag("input");
         
@@ -190,11 +154,15 @@ public class Ticket
                         }
         
                         srch_url = url + "/tickets.php?" + res.toString();
+                        if (scp.DEBUG)
+                                Log.d(TAG, "Ticket search uri : " + srch_url);
 
                         html = http.get(srch_url);
 
-                        if (html == null)
+                        if (html == null) {
+                                Log.e(TAG, "Error getting search result form " + srch_url);
                                 return null;
+                        }
 
                         doc = Jsoup.parse(html);
                         Elements trs = doc.select("tbody tr"); 
@@ -208,9 +176,19 @@ public class Ticket
                                 return id;
                         }
 
+                        if (scp.DEBUG) {
+                                Log.d(TAG, "Error getting html tr attr \"id\"");
+                                Log.d(TAG, trs.toString());
+                        }
+
                         return null;
 
                 } catch (Exception e) {
+                        if (scp.DEBUG) {
+                                Log.d(TAG, "Exception", e);
+                                if (doc != null)
+                                        Log.d(TAG, doc.toString());
+                        }
                         return null;
                 }
         }

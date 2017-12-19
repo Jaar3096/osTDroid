@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.BottomNavigationView;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.app.ActionBar;
@@ -32,6 +33,8 @@ public class TView extends AppCompatActivity
                 setSupportActionBar(toolbar);
                 
                 text = (TextView) findViewById(R.id.test);
+                BottomNavigationView bnav = (BottomNavigationView)
+                                                findViewById(R.id.bnav);
 
                 Bundle b = getIntent().getExtras();
                 if (b != null)
