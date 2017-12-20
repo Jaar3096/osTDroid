@@ -26,20 +26,24 @@
 
     </android.support.design.widget.AppBarLayout>
 
-        <TextView
-        android:id="@+id/test"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:textSize="24sp"
-        />
-        
+        <FrameLayout
+                android:id="@+id/fragment_frame"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
     </LinearLayout>
+        
         <android.support.design.widget.BottomNavigationView
                 android:id="@+id/bnav"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="50dp"
                 android:layout_gravity="bottom"
-                design:menu="@menu/nav_menu" />
+                design:menu="@menu/nav_menu"
+                android:background="@android:color/white"
+                app:elevation="8dp" />
+
 
 </android.support.design.widget.CoordinatorLayout>

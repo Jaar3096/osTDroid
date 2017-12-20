@@ -213,17 +213,23 @@ public class scp {
         public static List<Ticket> sync(int ticket_state)
         throws Exception
         {
-                /* See CSV exported file */
                 int TICKET_ID   = 0;
-                int DATE        = 1;
-                int TITLE       = 2;
-                int PRIO        = 5;
-                int USER        = 3;
-                int ASGN        = 14;
-                int TOPIC       = 7;
-                int STATUS      = 9;
-                int TEAM        = 16;
-                int MDFY        = 10;
+                int DATE        = 0;
+                int TITLE       = 0;
+                int USER        = 0;
+                int USER_EMAIL  = 0;
+                int PRIO        = 0;
+                int DPRT        = 0;
+                int TOPIC       = 0;
+                int SOURCE      = 0;
+                int STATUS      = 0;
+                int MDFY        = 0;
+                int DUE_DATE    = 0;
+                int OVERDUE     = 0;
+                int ANSWERED    = 0;
+                int ASGN        = 0;
+                int AGENT_ASGN  = 0;
+                int TEAM_ASGN   = 0;
 
                 int CSV_COL     = 17;
 
@@ -279,6 +285,7 @@ public class scp {
                 String key = null;
                 Ticket ticket;
 
+                int i = 0;
                 while ((ln = inbuf.readLine()) != null) {
                         ln = ln.replaceAll("\"", "");
                         tmp = ln.split(",", -1);
@@ -288,25 +295,122 @@ public class scp {
                                 return null;
                         }
 
-                        if (!tmp[TICKET_ID].matches("^[0-9]+"))
+                        /* See CSV exported file */
+                        if (i == 0) {
+                                int j;
+                                for (j = 0; j < tmp.length; j++) {
+                                        switch(tmp[j]) {
+                                                case "Ticket Number":
+                                                        TICKET_ID = j;
+                                                        break;
+                                                case "Date":
+                                                        DATE = j;
+                                                        break;
+                                                case "Subject":
+                                                        TITLE = j;
+                                                        break;
+                                                case "From":
+                                                        USER = j;
+                                                        break;
+                                                case "From Email":
+                                                        USER_EMAIL= j;
+                                                        break;
+                                                case "Priority":
+                                                        PRIO = j;
+                                                        break;
+                                                case "Department":
+                                                        DPRT = j;
+                                                        break;
+                                                case "Help Topic":
+                                                        TOPIC = j;
+                                                        break;
+                                                case "Source":
+                                                        SOURCE = j;
+                                                        break;
+                                                case "Current Status":
+                                                        STATUS = j;
+                                                        break;
+                                                case "Last Updated":
+                                                        MDFY = j;
+                                                        break;
+                                                case "Due Date":
+                                                        DUE_DATE = j;
+                                                        break;
+                                                case "Overdue":
+                                                        OVERDUE = j;
+                                                        break;
+                                                case "Answered":
+                                                        ANSWERED = j;
+                                                        break;
+                                                case "Assigned To":
+                                                        ASGN = j;
+                                                        break;
+                                                case "Agent Assigned":
+                                                        AGENT_ASGN= j;
+                                                        break;
+                                                case "Team Assigned":
+                                                        TEAM_ASGN = j;
+                                                        break;
+                                        }
+                                }
+
+                                i++;
                                 continue;
+                        }
 
                         key = tmp[TICKET_ID];
-                        ticket = new Ticket();
 
-                        ticket.tid      = tmp[TICKET_ID];
-                        ticket.date     = tmp[DATE];
-                        ticket.title    = tmp[TITLE];
-                        ticket.prio     = tmp[PRIO];
-                        ticket.user     = tmp[USER];
-                        ticket.asgn     = tmp[ASGN];
-                        ticket.topic    = tmp[TOPIC];
-                        ticket.status   = tmp[STATUS];
-                        ticket.team     = tmp[TEAM];
+                        int w = 0;
+                        if (db.exists(key)) {
+                                ticket = db.getObject(key, Ticket.class);
+                                if (!ticket.prio.equals(tmp[PRIO])) {
+                                        ticket.prio = tmp[PRIO];
+                                        w |= 1;
+                                }
+                                if (!ticket.asgn.equals(tmp[ASGN])) {
+                                        ticket.asgn= tmp[ASGN];
+                                        w |= 1;
+                                }
+                                if (!ticket.status.equals(tmp[STATUS])) {
+                                        ticket.status= tmp[STATUS];
+                                        w |= 1;
+                                }
+                                if (!ticket.team_asgn.equals(tmp[TEAM_ASGN])) {
+                                        ticket.team_asgn= tmp[TEAM_ASGN];
+                                        w |= 1;
+                                }
+                                if (!ticket.mdfy.equals(tmp[MDFY])) {
+                                        ticket.mdfy= tmp[MDFY];
+                                        w |= 1;
+                                }
 
-                        db.put(key, ticket);
+                                if (w == 1)
+                                        db.put(key, ticket);
+                        } else {
+                                ticket = new Ticket();
+                                ticket.tid      = tmp[TICKET_ID];
+                                ticket.date     = tmp[DATE];
+                                ticket.title    = tmp[TITLE];
+                                ticket.user     = tmp[USER];
+                                ticket.user_email = tmp[USER_EMAIL];
+                                ticket.prio     = tmp[PRIO];
+                                ticket.dprt     = tmp[DPRT];
+                                ticket.topic    = tmp[TOPIC];
+                                ticket.source   = tmp[SOURCE];
+                                ticket.status   = tmp[STATUS];
+                                ticket.mdfy     = tmp[MDFY];
+                                ticket.due_date = tmp[DUE_DATE];
+                                ticket.overdue  = tmp[OVERDUE];
+                                ticket.answered = tmp[ANSWERED];
+                                ticket.asgn     = tmp[ASGN];
+                                ticket.agent_asgn= tmp[AGENT_ASGN];
+                                ticket.team_asgn= tmp[TEAM_ASGN];
+                                
+                                db.put(key, ticket);
+                        }
 
                         ticket_lst.add(ticket);
+                        i++;
                 }
 
                 return ticket_lst;

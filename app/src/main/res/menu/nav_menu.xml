@@ -1,11 +1,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
         <item 
                 android:id="@+id/tdetail"
-                android:title="details" />
+                android:title="DETAILS"
+                android:icon="@drawable/ic_act" />
         <item 
                 android:id="@+id/tthread"
-                android:title="thread" />
+                android:title="THREAD"
+                android:icon="@drawable/ic_emails"/>
         <item 
                 android:id="@+id/tinternal"
-                android:title="internal" />
+                android:title="INTERNAL"
+                android:icon="@drawable/ic_comments" />
 </menu>

@@ -28,10 +28,6 @@ public class TFragment extends Fragment
 
         public int ticket_state                = Ticket.OPEN;
 
-        public void TFragment(int pos)
-        {
-        }
-
         @Override
         public void onCreate(Bundle savedInstanceState)
         {
