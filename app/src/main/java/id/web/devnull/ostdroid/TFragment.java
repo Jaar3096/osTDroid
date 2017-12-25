@@ -20,7 +20,6 @@ import id.web.devnull.ostdroid.scp.*;
 
 public class TFragment extends Fragment
 {
-        private List<String> data;
         private TAdapter adapter;
         private RecyclerView rcview;
         private LinearLayoutManager lmgr;

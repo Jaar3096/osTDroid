@@ -24,7 +24,6 @@ public class TView extends AppCompatActivity
         private DB db = dbsetup.db;
         private Ticket ticket;
         private BottomNavigationView bnav;
-        private Vdetail vdetail = new Vdetail();
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -41,13 +40,9 @@ public class TView extends AppCompatActivity
                 if (this.tid != null) {
                         try {
                                 ticket = db.getObject(tid, Ticket.class);
-                                bg view_ticket = new bg();
-                                view_ticket.execute(ticket);
                         } catch(Exception e) {
                         }
                 }
-
-                vdetail.ticket = ticket;
 
                 bnav();
         }
@@ -74,34 +69,36 @@ public class TView extends AppCompatActivity
                                                 ft.commit();
                                                 return true;
                                         }
+                                        if (menu_id == R.id.tthread) {
+                                                ThreadFragment fr_external = 
+                                                        new ThreadFragment();
+                                                fr_external.ticket = ticket;
+                                                fr_external.thread_type =
+                                                        ThreadFragment.EXTERNAL;
 
-                                        return true;
+                                                ft.replace(R.id.fragment_frame,
+                                                                fr_external);
+                                                ft.commit();
+                                                return true;
+                                        }
+                                        if (menu_id == R.id.tinternal) {
+                                                ThreadFragment fr_internal = 
+                                                        new ThreadFragment();
+                                                fr_internal.ticket = ticket;
+                                                fr_internal.thread_type =
+                                                        ThreadFragment.INTERNAL;
+
+                                                ft.replace(R.id.fragment_frame,
+                                                                fr_internal);
+                                                ft.commit();
+                                                return true;
+                                        }
+
+                                        return false;
                                 }
                         }
                 );
 
                 bnav.setSelectedItemId(R.id.tdetail);
-        }
-
-        private class bg extends AsyncTask<Ticket, Void, String>
-        {
-                @Override
-                protected String doInBackground(Ticket... tickets) {
-                        try {
-                                ticket = tickets[0];
-                                return ticket.view();
-                        } catch(Exception e) {
-                                Log.e(TAG, "view thread error", e);
-                                return null;
-                        }
-                }
-
-                @Override
-                protected void onPostExecute(String s) {
-                        if (s == null) {
-                                Log.e(TAG, "Error loading ticket thread");
-                                return;
-                        }
-                }
         }
 }

@@ -57,7 +57,7 @@ public class TAdapter extends RecyclerView.Adapter<TAdapter.VHolder>
                 v.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                                int pos = vh.getPosition();
+                                int pos = vh.getAdapterPosition();
                                 Intent i = new Intent(ctx, TView.class);
                                 i.putExtra("tid", data.get(pos).tid);
                                 ctx.startActivity(i);

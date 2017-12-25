@@ -37,7 +37,9 @@ public class Ticket
         public int rd_flag;
 
         public int change       = 0;
-        private List<Map> ticket_thread;
+
+        public List<Tthread> thread_external = new LinkedList<Tthread>();
+        public List<Tthread> thread_internal = new LinkedList<Tthread>();
 
         public static final int OPEN    = 0;
         public static final int OVERDUE = 1;
@@ -67,7 +69,7 @@ public class Ticket
                 this.rd_flag    = 0;
         }
 
-        public String view()
+        public int view()
         {
                 if (scp.DEBUG)
                         Log.d(TAG, "Viewing ticket id #" + this.tid);
@@ -81,7 +83,7 @@ public class Ticket
 
                 if (dbid == null || !dbid.matches("[0-9]+")) {
                         Log.e(TAG, "database id not valid");
-                        return null;
+                        return 0;
                 }
 
                 try {
@@ -90,21 +92,20 @@ public class Ticket
                                 if (scp.DEBUG)
                                         Log.d(TAG, "Saving ticket data to db");
                                 if (!save())
-                                        return null;
+                                        return 0;
                         }
 
-                        List<Map> remote = get_thread(scp.config.get("url") + 
+                        get_thread(scp.config.get("url") + 
                                         "/tickets.php?id=" + dbid);
-                        if (remote == null) {
-                                Log.e(TAG, "Get ticket thread returns null");
-                                return null;
+                        if (this.thread_internal != null ||
+                                        this.thread_external != null) {
+                                save();
+                                return 1;
                         }
-
-                        return remote;
-
+                        return 0;
                 } catch (Exception e) {
-                        Log.e(TAG, "error create ticket thread file");
-                        return null;
+                        Log.e(TAG, "error saving ticket to db", e);
+                        return 0;
                 }
         }
 
@@ -119,36 +120,40 @@ public class Ticket
                 }
         }
 
-        private static List<Map> get_thread(String url)
+        private void get_thread(String url)
         throws Exception
         {
-                String THREAD_SELECTOR  = "ticket_thread";
-                Map<String, String> msg;
+                final String THREAD_SELECTOR  = "ticket_thread";
+                Tthread thread;
 
                 String html = http.get(url);
-                if (html == null) {
-                        Log.e(TAG, "get ticket thread error");
-                        return null;
-                }
+                if (html == null)
+                        Log.e(TAG, "Unable to get thread: html string is null");
 
                 Document doc = Jsoup.parse(html);
-                Element thd = doc.getElementById(THREAD_SELECTOR);
-                Elements threads = thread.getElementsByTag("table");
-                ticket_thread = new LinkedList<Map>();
 
-                for (Element thread : threads) {
-                        msg = new HashMap<String, String>();
-                        String cls = thread.attr("class");
-                        if (cls != null) {
-                                if (cls.equals("thread-entry note"))
-                                        msg.add("type", "internal");
-                                else    msg.add("type", "external");
-                        } else continue;
-                        msg.add("content", thread.toString());
-                        ticket_thread.add(msg);
+                Element tthread = doc.getElementById(THREAD_SELECTOR);
+                Elements tables = tthread.getElementsByTag("table");
+                int thread_saved = this.thread_internal.size() +
+                                   this.thread_external.size();
+
+                if (tables.size() <= thread_saved)
+                        return;
+
+                int i = 0;
+                for (Element table : tables) {
+                        if (i < thread_saved) {
+                                i++;
+                                continue;
+                        }
+
+                        thread = new Tthread();
+                        thread.extract(table);
+
+                        if ((thread.type & Tthread.INTERNAL) > 0)
+                                this.thread_internal.add(thread);
+                        else    this.thread_external.add(thread);
                 }
-
-                return ticket_thread;
         }
 
         private static String get_dbid(String tid)
