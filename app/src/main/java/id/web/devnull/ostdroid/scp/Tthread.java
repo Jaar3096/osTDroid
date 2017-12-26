@@ -113,7 +113,7 @@ public class Tthread
                                                 s = as.get(a).attr("href");
                                                 if (s.matches(FILE_REGEX))
                                                         sb.append("attach" + SEP + HOST + s);
-                                                else    sb.append("link" + SEP + HOST + s);
+                                                else    sb.append("link" + SEP + s);
                                         }
 
                                         sb.append(SEP + txt);
