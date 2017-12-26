@@ -81,4 +81,20 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                         }
                 }
         }
+/*
+        private class download_image extends AsyncTask<String, Void, String>
+        {
+                public int data_pos     = -1;
+                public int content_pos  = -1;
+                public ImageView iv = null;
+                private Http http = new Http();
+
+                @Override
+                protected String doInBackground(String... urls) {
+                        String url = urls[0];
+                        
+                }
+        }
+*/
+
 }

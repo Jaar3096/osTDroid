@@ -26,6 +26,7 @@ public class scp {
         private static final int INDEX_MAX_SIZE         = 100;
         public static boolean DEBUG                     = true;
         private static final String TAG                 = "osTDroid";
+        private static final Http http                  = new Http();
 
         public static boolean setup(String url, String user, String pass)
         throws Exception

@@ -44,7 +44,8 @@ public class Ticket
         public static final int OPEN    = 0;
         public static final int OVERDUE = 1;
         public static final int CLOSE   = 2;
-        public static final DB db       = dbsetup.db;
+        private static final DB db      = dbsetup.db;
+        private static Http http  = new Http();
 
         public Ticket()
         {

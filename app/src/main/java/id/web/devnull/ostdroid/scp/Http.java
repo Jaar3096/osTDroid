@@ -14,24 +14,23 @@ import android.util.Log;
 import com.snappydb.DB;
 import com.snappydb.DBFactory;
 
-public class http {
-
+public class Http {
         private static final String USER_AGENT  = "osTDroid";
         private static List<String> cookies     = null;
         private static String cookie            = null;
         private static String cookie_exp        = null;
         private static String saved_cookie      = null;
-        private static URLConnection conn;
-        public static String errmsg             = "";
+        private URLConnection conn;
         private static final String ENCODING    = "UTF-8";
+        public Map<String, List<String>> header = null;
 
         public static final int HTTP_OK         = 200;
         public static final int HTTP_FOUND      = 302;
         public static final int HTTP_NOT_FOUND  = 404;
         private static final String TAG         = "osTDroid";
+        private static final DB db              = dbsetup.db;
 
-        http()
-        throws Exception
+        public Http()
         {
                 cookie_man();
         }
@@ -42,7 +41,6 @@ public class http {
                 String DATA_DIR         = "data";
                 String DATEFORMAT       = "EEE, dd-MMM-yyyy hh:mm:ss z";
                 String TIMEZONE         = "GMT";
-                DB db                   = dbsetup.db;
 
                 if (cookie == null) {
                         if (scp.DEBUG)
@@ -79,35 +77,10 @@ public class http {
                                 Log.e(TAG, "Error fetch data from db", e);
                                 return;
                         }
-                } else {
-                        try {
-                                if (db == null)
-                                        return;
-        
-                                String key = null;
-                                String data = null;
-        
-                                int i;
-                                for(i = 0; i < 2; i++) {
-                                        if (i == 0) {
-                                                key = "cookie";
-                                                data    = cookie;
-                                        } else {
-                                                key = "cookie_expires";
-                                                data    = cookie_exp;
-                                        }
-        
-                                        db.put(key, data);
-                                }
-
-                        } catch (Exception e) {
-                                Log.e(TAG, "Error writing cookie to db");
-                                return;
-                        }
                 }
         }
 
-        public static String ck_url (String url) {
+        public String ck_url (String url) {
                 int unspec = 0;
                 URL link = null;
                 HttpsURLConnection secure;
@@ -160,7 +133,7 @@ public class http {
                 return link.toString();
         }
 
-        private static boolean set_conn(String url) {
+        private boolean set_conn(String url) {
                 try {
                         URL link = new URL(url);
                         conn = link.openConnection();
@@ -173,7 +146,7 @@ public class http {
                 }
         }
 
-        public static String get(String url) throws Exception {
+        public String get(String url) throws Exception {
                 int response = 0;
                 StringBuffer html = null;
 
@@ -211,15 +184,20 @@ public class http {
         
 	                stream.close();
         
-	                cookies = connPlain.getHeaderFields().get("Set-Cookie");
+                        header = connPlain.getHeaderFields();
+	                cookies = header.get("Set-Cookie");
+
 	                if (cookies != null) {
                                 String[] str = null;
                                 for (String t : cookies)
                                         str = t.split(";");
 
                                 if (str != null) {
-                                        cookie = str[0];
-                                        cookie_exp = str[1].split("=")[1];
+                                        if (cookie == null || !cookie.equals(str[0])) {
+                                                cookie = str[0];
+                                                cookie_exp = str[1].split("=")[1];
+                                                save_cookie();
+                                        }
                                 }
                         }
                 }
@@ -252,15 +230,19 @@ public class http {
         
 	                stream.close();
         
-	                cookies = connSsl.getHeaderFields().get("Set-Cookie");
+                        header = connSsl.getHeaderFields();
+	                cookies = header.get("Set-Cookie");
 	                if (cookies != null) {
                                 String[] str = null;
                                 for (String t : cookies)
                                         str = t.split(";");
 
                                 if (str != null) {
-                                        cookie = str[0];
-                                        cookie_exp = str[1].split("=")[1];
+                                        if (cookie == null || !cookie.equals(str[0])) {
+                                                cookie = str[0];
+                                                cookie_exp = str[1].split("=")[1];
+                                                save_cookie();
+                                        }
                                 }
                         }
                 }
@@ -273,7 +255,32 @@ public class http {
                 return null;
         }
 
-        public static int post(String url, String params) throws Exception {
+        public InputStream get_byte(String url) {
+                int response = 0;
+                try {
+                        URL lnk = new URL(url);
+                        URLConnection uc = lnk.openConnection();
+
+                        uc.setUseCaches(true);
+                        uc.setRequestProperty("User-Agent", USER_AGENT);
+	                if (cookie != null)
+                                uc.setRequestProperty("Cookie", cookie);
+        
+                        if (uc instanceof HttpURLConnection)
+                                response = ((HttpURLConnection) uc).getResponseCode();
+                        if (uc instanceof HttpsURLConnection)
+                                response = ((HttpsURLConnection) uc).getResponseCode();
+                        header = uc.getHeaderFields();
+
+                        return uc.getInputStream();
+                } catch(Exception e) {
+                        if (scp.DEBUG)
+                                Log.d(TAG, "Error download data from " + url, e);
+                        return null;
+                }
+        }
+
+        public int post(String url, String params) throws Exception {
                 int response = 0;
                 if (!set_conn(url))
                         return 0;
@@ -343,9 +350,29 @@ public class http {
                 cookie = null;
         }
 
-        public static void close()
-        throws Exception
-        {
-                cookie_man();
+        private void save_cookie() {
+                try {
+                        if (db == null)
+                                return;
+       
+                        String key = null;
+                        String data = null;
+        
+                        int i;
+                        for(i = 0; i < 2; i++) {
+                                if (i == 0) {
+                                        key = "cookie";
+                                        data    = cookie;
+                                } else {
+                                        key = "cookie_expires";
+                                        data    = cookie_exp;
+                                }
+        
+                                db.put(key, data);
+                        }
+                } catch (Exception e) {
+                        Log.e(TAG, "Error writing cookie to db");
+                        return;
+                }
         }
 }

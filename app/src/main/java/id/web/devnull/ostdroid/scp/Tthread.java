@@ -2,6 +2,7 @@ package id.web.devnull.ostdroid.scp;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.net.URL;
 import java.lang.StringBuilder;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,8 +12,10 @@ public class Tthread
         public static final int INTERNAL = 0x01;
         public static final int MESSAGE  = 0x02;
         public static final int RESPONSE = 0x04;
-        private static final String date_regex = "[0-9]+/[0-9]+/[0-9]+.*";
+        private static final String DATE_REGEX = "[0-9]+/[0-9]+/[0-9]+.*";
         private static final String SEP = "\\0";
+        private static final String FILE_REGEX = "^/file.php\\?.*";
+        private static String HOST = null;
 
         public int type;
         public String poster;
@@ -20,9 +23,14 @@ public class Tthread
         public String extra;
         public List<String> content;
                
-        public Tthread() {
-              this.content = new ArrayList<String>();
-              this.type &= 0;
+        public Tthread() throws Exception {
+                this.content = new ArrayList<String>();
+                this.type &= 0;
+                
+                URL url = new URL(scp.config.get("url"));
+                String proto = url.getProtocol();
+                String host = url.getHost();
+                HOST = proto + "://" + host;
         }
         
         public void extract(Element table) {
@@ -49,7 +57,7 @@ public class Tthread
                                 String tmp = "";
                                 for (Element span : spans) {
                                         String hdr = span.text();
-                                        if (hdr.matches(date_regex)) {
+                                        if (hdr.matches(DATE_REGEX)) {
                                                 if (tmp.length() == 0)
                                                         tmp = hdr;
                                                 this.date = hdr;
@@ -83,7 +91,7 @@ public class Tthread
                                         }
 
                                         sb.append("img" + SEP);
-                                        s = imgs.get(img).attr("src");
+                                        s = HOST + imgs.get(img).attr("src");
                                         sb.append(s);
                                         this.content.add(sb.toString());
                                         sb.delete(0, sb.length());
@@ -97,13 +105,18 @@ public class Tthread
                                                 sb.delete(0, sb.length());
                                         }
 
-                                        s = as.get(a).text();
-                                        if (!s.matches(".*[0-9a-zA-Z]+")) {
+                                        String txt  = as.get(a).text();
+                                        if (!txt.matches(".*[0-9a-zA-Z]+")) {
                                                 a++;
                                                 continue;
-                                        } else  sb.append("link" + SEP + s);
-                                        s = as.get(a).attr("href");
-                                        sb.append("" + SEP + s);
+                                        } else {
+                                                s = as.get(a).attr("href");
+                                                if (s.matches(FILE_REGEX))
+                                                        sb.append("attach" + SEP + HOST + s);
+                                                else    sb.append("link" + SEP + HOST + s);
+                                        }
+
+                                        sb.append(SEP + txt);
                                         this.content.add(sb.toString());
                                         sb.delete(0, sb.length());
                                         a++;
