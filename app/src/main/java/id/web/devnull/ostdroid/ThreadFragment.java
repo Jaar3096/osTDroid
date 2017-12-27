@@ -13,39 +13,29 @@ import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.content.Context;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import id.web.devnull.ostdroid.scp.*;
 
 public class ThreadFragment extends Fragment
 {
-        public Ticket ticket = null;
-        private ThreadAdapter adapter;
+        public ThreadAdapter adapter;
         private RecyclerView rcview;
         private LinearLayoutManager lmgr;
 
-        public static final int EXTERNAL = 0x01;
-        public static final int INTERNAL = 0x02;
-        public int thread_type;
         public static final String TAG = "osTDroid";
+
+        public List<Tthread> data = null;
 
         @Override
         public void onCreate(Bundle savedInstanceState)
         {
                 super.onCreate(savedInstanceState);
 
-                adapter = new ThreadAdapter(getActivity());
-                adapter.data = null;
-
-                if ((this.thread_type & EXTERNAL) > 0)
-                        adapter.data = ticket.thread_external;
-                if ((this.thread_type & INTERNAL) > 0)
-                        adapter.data = ticket.thread_internal;
+                adapter.data = data;
                 adapter.notifyDataSetChanged();
-
-                bg bg_thread =  new bg();
-                bg_thread.execute();
+                this.setRetainInstance(true);
         }
 
         @Override
@@ -63,53 +53,9 @@ public class ThreadFragment extends Fragment
                 return v;
         }
 
-        private class bg extends AsyncTask<Void, Void, Integer>
-        {
-                private int int_sz = 0;
-                private int ext_sz = 0;
-
-                @Override
-                protected void onPreExecute() {
-                       this.int_sz = ticket.thread_internal.size(); 
-                       this.ext_sz = ticket.thread_external.size(); 
-                }
-
-                @Override
-                protected Integer doInBackground(Void... v) {
-                        try {
-                                return ticket.view();
-                        } catch(Exception e) {
-                                Log.e(TAG, "view thread error", e);
-                                return null;
-                        }
-                }
-
-                @Override
-                protected void onPostExecute(Integer i) {
-                        if (i == 0) {
-                                Log.e(TAG, "Error loading ticket thread");
-                                return;
-                        } else {
-                                int count;
-                                if ((thread_type & INTERNAL) > 0) {
-                                        count = ticket.thread_internal.size() - int_sz;
-                                        if (count > 0) {
-                                                int j;
-                                                for (j = 0; j < count; j++) {
-                                                        adapter.notifyItemInserted(int_sz + j);
-                                                }
-                                        }
-                                }
-                                if ((thread_type & EXTERNAL) > 0) {
-                                        count = ticket.thread_external.size() - ext_sz;
-                                        if (count > 0) {
-                                                int j;
-                                                for (j = 0; j < count; j++) {
-                                                        adapter.notifyItemInserted(ext_sz + j);
-                                                }
-                                        }
-                                }
-                        }
-                }
+        @Override
+        public void onDestroyView() {
+                super.onDestroyView();
+                adapter.clr_track();
         }
 }

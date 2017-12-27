@@ -35,6 +35,7 @@ public class TFragment extends Fragment
                 adapter = new TAdapter(getActivity());
                 adapter.data = scp.list(ticket_state);
                 adapter.notifyDataSetChanged();
+                this.setRetainInstance(true);
                 bg task =  new bg();
                 task.execute(ticket_state);
         }
@@ -67,6 +68,7 @@ public class TFragment extends Fragment
                 private static final String url = "http://helpdesk.transkon.net.id/scp";
                 private static final String user = "dhani";
                 private static final String pass = "obi wan kenobi";
+                private final String dir = getContext().getExternalFilesDir(null).getAbsolutePath();
                 private int tstate = -1;
 
                 @Override
@@ -76,7 +78,7 @@ public class TFragment extends Fragment
                                 if (scp.DEBUG)
                                         Log.d(TAG, "loading configuration");
 
-                                if (!scp.setup(url, user, pass)) {
+                                if (!scp.setup(url, user, pass, dir)) {
                                         Log.e(TAG, "Error setup");
                                         return null;
                                 }

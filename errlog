@@ -14,7 +14,9 @@
 :app:processDebugResources UP-TO-DATE
 :app:generateDebugSources UP-TO-DATE
 :app:javaPreCompileDebug UP-TO-DATE
-:app:compileDebugJavaWithJavac
+:app:compileDebugJavaWithJavacNote: /home/dhani/osTDroid/app/src/main/java/id/web/devnull/ostdroid/scp/Ticket.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
 :app:compileDebugNdk NO-SOURCE
 :app:compileDebugSources
 :app:mergeDebugShaders UP-TO-DATE
@@ -45,7 +47,9 @@
 :app:processReleaseResources UP-TO-DATE
 :app:generateReleaseSources UP-TO-DATE
 :app:javaPreCompileRelease UP-TO-DATE
-:app:compileReleaseJavaWithJavac
+:app:compileReleaseJavaWithJavacNote: /home/dhani/osTDroid/app/src/main/java/id/web/devnull/ostdroid/scp/Ticket.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
 :app:compileReleaseNdk NO-SOURCE
 :app:compileReleaseSources
 :app:mergeReleaseShaders UP-TO-DATE
@@ -63,24 +67,24 @@
 :app:assembleRelease
 :app:assemble
 :app:lint
-Ran lint on variant debug: 81 issues found
-Ran lint on variant release: 81 issues found
+Ran lint on variant debug: 82 issues found
+Ran lint on variant release: 82 issues found
 Wrote HTML report to file:///home/dhani/osTDroid/app/build/reports/lint-results.html
 Wrote XML report to file:///home/dhani/osTDroid/app/build/reports/lint-results.xml
 :app:preDebugUnitTestBuild UP-TO-DATE
 :app:javaPreCompileDebugUnitTest
-:app:compileDebugUnitTestJavaWithJavac UP-TO-DATE
+:app:compileDebugUnitTestJavaWithJavac
 :app:mockableAndroidJar UP-TO-DATE
 :app:processDebugUnitTestJavaRes NO-SOURCE
 :app:testDebugUnitTest
 :app:preReleaseUnitTestBuild UP-TO-DATE
 :app:javaPreCompileReleaseUnitTest
-:app:compileReleaseUnitTestJavaWithJavac UP-TO-DATE
+:app:compileReleaseUnitTestJavaWithJavac
 :app:processReleaseUnitTestJavaRes NO-SOURCE
 :app:testReleaseUnitTest
 :app:test
 :app:check
 :app:build
 
-BUILD SUCCESSFUL in 9s
-55 actionable tasks: 15 executed, 40 up-to-date
+BUILD SUCCESSFUL in 33s
+55 actionable tasks: 17 executed, 38 up-to-date

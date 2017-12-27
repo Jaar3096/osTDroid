@@ -38,17 +38,17 @@ public class Ticket
 
         public int change       = 0;
 
-        public List<Tthread> thread_external = new LinkedList<Tthread>();
-        public List<Tthread> thread_internal = new LinkedList<Tthread>();
-
         public static final int OPEN    = 0;
         public static final int OVERDUE = 1;
         public static final int CLOSE   = 2;
+        private int thread_size;
+        private static String thread_dir = null;
         private static final DB db      = dbsetup.db;
         private static Http http  = new Http();
 
         public Ticket()
         {
+                this.thread_dir = scp.config.get("dir") + "/threads/";
                 this.dbid       = "";
                 this.tid        = "";
                 this.date       = "";
@@ -70,7 +70,7 @@ public class Ticket
                 this.rd_flag    = 0;
         }
 
-        public int view()
+        public List<Tthread> sync_thread()
         {
                 if (scp.DEBUG)
                         Log.d(TAG, "Viewing ticket id #" + this.tid);
@@ -79,12 +79,16 @@ public class Ticket
                 if (this.dbid.length() == 0) {
                         if (scp.DEBUG)
                                 Log.d(TAG, "Ticket dbid is not set, tryng to get dbid from server");
+                        if (!scp.login(scp.config.get("user"), scp.config.get("pass")))
+                                if (scp.DEBUG)
+                                        Log.d(TAG, "Error login to server");
+
                         dbid = get_dbid(this.tid);
                 } else  dbid = this.dbid;
 
                 if (dbid == null || !dbid.matches("[0-9]+")) {
                         Log.e(TAG, "database id not valid");
-                        return 0;
+                        return null;
                 }
 
                 try {
@@ -93,24 +97,21 @@ public class Ticket
                                 if (scp.DEBUG)
                                         Log.d(TAG, "Saving ticket data to db");
                                 if (!save())
-                                        return 0;
+                                        return null;
                         }
 
+                        List<Tthread> data = new LinkedList<Tthread>();
                         get_thread(scp.config.get("url") + 
-                                        "/tickets.php?id=" + dbid);
-                        if (this.thread_internal != null ||
-                                        this.thread_external != null) {
-                                save();
-                                return 1;
-                        }
-                        return 0;
+                                        "/tickets.php?id=" + dbid, data);
+
+                        return data;
                 } catch (Exception e) {
                         Log.e(TAG, "error saving ticket to db", e);
-                        return 0;
+                        return null;
                 }
         }
 
-        private boolean save()
+        public boolean save()
         {
                 try {
                         db.put(this.tid, this);
@@ -121,7 +122,7 @@ public class Ticket
                 }
         }
 
-        private void get_thread(String url)
+        private void get_thread(String url, List<Tthread> data)
         throws Exception
         {
                 final String THREAD_SELECTOR  = "ticket_thread";
@@ -135,25 +136,28 @@ public class Ticket
 
                 Element tthread = doc.getElementById(THREAD_SELECTOR);
                 Elements tables = tthread.getElementsByTag("table");
-                int thread_saved = this.thread_internal.size() +
-                                   this.thread_external.size();
-
-                if (tables.size() <= thread_saved)
+                if (tables == null || tables.size() == 0)
                         return;
+
+                if (tables.size() <= this.thread_size)
+                        return;
+
+                List<Tthread> local = load_thread();
+                if (local != null)
+                        for (Tthread t : local)
+                                data.add(t);
 
                 int i = 0;
                 for (Element table : tables) {
-                        if (i < thread_saved) {
+                        if (i < this.thread_size) {
                                 i++;
                                 continue;
                         }
 
                         thread = new Tthread();
                         thread.extract(table);
-
-                        if ((thread.type & Tthread.INTERNAL) > 0)
-                                this.thread_internal.add(thread);
-                        else    this.thread_external.add(thread);
+                        
+                        data.add(thread);
                 }
         }
 
@@ -229,9 +233,60 @@ public class Ticket
                         if (scp.DEBUG) {
                                 Log.d(TAG, "Exception", e);
                                 if (doc != null)
-                                        Log.d(TAG, doc.toString());
+                                        Log.d(TAG, doc.toString(), e);
                         }
                         return null;
                 }
         }
+
+        public List<Tthread> load_thread() {
+                String file = this.thread_dir + "/" + this.tid + ".thread";
+
+                if (file == null)
+                        return null;
+                File f = new File(file);
+                if (!f.exists())
+                        return null;
+
+                try {
+                        FileInputStream fin = new FileInputStream(f);
+                        ObjectInputStream objin = new ObjectInputStream(fin);
+                        List<Tthread> data = (List<Tthread>) objin.readObject();
+                        objin.close();
+                        fin.close();
+
+                        this.thread_size = data.size();
+                        return data;
+                } catch (Exception e) {
+                        if (scp.DEBUG)
+                                Log.e(TAG, "Error loading thread for ticket #" + this.tid, e);
+                        return null;
+                }
+        }
+
+        public void save_thread(List<Tthread> data) {
+                String file = this.thread_dir + "/" + this.tid + ".thread";
+                
+                if (data == null)
+                        return;
+                try {
+                        File d = new File(thread_dir);
+                        if (!d.exists())
+                                d.mkdir();
+                        File f = new File(file);
+                        if (!f.exists())
+                                f.createNewFile();
+
+                        FileOutputStream fout = new FileOutputStream(f);
+                        ObjectOutputStream objout = new ObjectOutputStream(fout);
+
+                        objout.writeObject(data);
+                        objout.close();
+                        fout.close();
+                } catch(Exception e) {
+                        if (scp.DEBUG)
+                                Log.e(TAG, "Error saving thread for ticket #" + this.tid, e);
+                }
+        }
+
 }

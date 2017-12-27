@@ -3,15 +3,15 @@ package id.web.devnull.ostdroid.scp;
 import java.util.List;
 import java.util.ArrayList;
 import java.net.URL;
+import java.io.Serializable;
 import java.lang.StringBuilder;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-public class Tthread 
+public class Tthread implements Serializable
 {
         public static final int INTERNAL = 0x01;
-        public static final int MESSAGE  = 0x02;
-        public static final int RESPONSE = 0x04;
+        public static final int EXTERNAL = 0x02;
         private static final String DATE_REGEX = "[0-9]+/[0-9]+/[0-9]+.*";
         private static final String SEP = "\\0";
         private static final String FILE_REGEX = "^/file.php\\?.*";
@@ -39,10 +39,10 @@ public class Tthread
                                 type |= INTERNAL;
                                 break;
                         case "thread-entry message":
-                                type |= MESSAGE;
+                                type |= EXTERNAL;
                                 break;
                         case "thread-entry response":
-                                type |= RESPONSE;
+                                type |= EXTERNAL;
                                 break;
                 }
 

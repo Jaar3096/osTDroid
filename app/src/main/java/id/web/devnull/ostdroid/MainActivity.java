@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+        private static final String TAG = "osTDroid";
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
                 } catch(Exception e) {
                         Log.e("osTDroid", "Error closing database", e);
                 }
-
         }
 
 

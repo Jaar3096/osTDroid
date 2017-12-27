@@ -56,6 +56,9 @@ public class Http {
                                         else
                                                 key = "cookie_expires";
 
+                                        if (!db.exists(key))
+                                                break;
+
                                         String val = db.get(key);
                                         if (i == 0) {
                                                 cookie = val;
@@ -194,51 +197,8 @@ public class Http {
 
                                 if (str != null) {
                                         if (cookie == null || !cookie.equals(str[0])) {
-                                                cookie = str[0];
-                                                cookie_exp = str[1].split("=")[1];
-                                                save_cookie();
-                                        }
-                                }
-                        }
-                }
-                if (conn instanceof HttpsURLConnection) {
-                        HttpsURLConnection connSsl = (HttpsURLConnection) conn;
-                        connSsl.setRequestMethod("GET");
-                        connSsl.setUseCaches(false);
-                        connSsl.setRequestProperty("User-Agent", USER_AGENT);
-                        connSsl.setFollowRedirects(true);
-                        connSsl.setInstanceFollowRedirects(true);
-        
-	                connSsl.setRequestProperty("Accept",
-		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
-	                connSsl.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-
-	                if (cookie != null)
-                                connSsl.setRequestProperty("Cookie", cookie);
-
-        
-                        response = connSsl.getResponseCode();
-                        
-	                BufferedReader stream =
-                        new BufferedReader(new InputStreamReader(connSsl.getInputStream()));
-	                String ln;
-	                html = new StringBuffer();
-        
-	                while ((ln = stream.readLine()) != null) {
-		                html.append(ln + "\n");
-	                }
-        
-	                stream.close();
-        
-                        header = connSsl.getHeaderFields();
-	                cookies = header.get("Set-Cookie");
-	                if (cookies != null) {
-                                String[] str = null;
-                                for (String t : cookies)
-                                        str = t.split(";");
-
-                                if (str != null) {
-                                        if (cookie == null || !cookie.equals(str[0])) {
+                                                if (scp.DEBUG)
+                                                        Log.i(TAG, "New cookies form server, saving...");
                                                 cookie = str[0];
                                                 cookie_exp = str[1].split("=")[1];
                                                 save_cookie();
@@ -255,24 +215,32 @@ public class Http {
                 return null;
         }
 
-        public InputStream get_byte(String url) {
+        public File get_byte(String url) {
                 int response = 0;
                 try {
                         URL lnk = new URL(url);
-                        URLConnection uc = lnk.openConnection();
+                        HttpURLConnection sock = (HttpURLConnection) lnk.openConnection();
 
-                        uc.setUseCaches(true);
-                        uc.setRequestProperty("User-Agent", USER_AGENT);
+                        sock.setUseCaches(true);
+                        sock.setRequestProperty("User-Agent", USER_AGENT);
 	                if (cookie != null)
-                                uc.setRequestProperty("Cookie", cookie);
+                                sock.setRequestProperty("Cookie", cookie);
         
-                        if (uc instanceof HttpURLConnection)
-                                response = ((HttpURLConnection) uc).getResponseCode();
-                        if (uc instanceof HttpsURLConnection)
-                                response = ((HttpsURLConnection) uc).getResponseCode();
-                        header = uc.getHeaderFields();
+                        response = sock.getResponseCode();
+                        header = sock.getHeaderFields();
 
-                        return uc.getInputStream();
+                        InputStream data = sock.getInputStream();
+                        byte[] buf = new byte[1024 * 8];
+                        int bytes_read;
+                        File out = File.createTempFile("ost", ".tmp");
+                        OutputStream fout = new FileOutputStream(out);
+
+                        while((bytes_read = data.read(buf)) != -1)
+                                fout.write(buf, 0, bytes_read);
+
+                        data.close();
+                        fout.close();
+                        return out;
                 } catch(Exception e) {
                         if (scp.DEBUG)
                                 Log.d(TAG, "Error download data from " + url, e);

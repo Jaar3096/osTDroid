@@ -28,7 +28,7 @@ public class scp {
         private static final String TAG                 = "osTDroid";
         private static final Http http                  = new Http();
 
-        public static boolean setup(String url, String user, String pass)
+        public static boolean setup(String url, String user, String pass, String dir)
         throws Exception
         {
                 int w = 0;
@@ -44,12 +44,16 @@ public class scp {
                         config.put("url", lnk);
                         config.put("user", user);
                         config.put("pass", pass);
+                        config.put("dir", dir);
 
                         w = 1;
                 } else {
                         config.put("url", db.get("config_url"));
                         config.put("user", db.get("config_user"));
                         config.put("pass", db.get("config_pass"));
+                        if (dir == null)
+                                config.put("dir", db.get("config_dir"));
+                        else    config.put("dir", dir);
                 }
 
                 if(!config.get("url").matches(".*" + url + ".*") 
@@ -65,6 +69,7 @@ public class scp {
                         config.put("url", lnk);
                         config.put("user", user);
                         config.put("pass", pass);
+                        config.put("dir", dir);
 
                         http.rst_cookie();
                         w = 1;
@@ -74,6 +79,7 @@ public class scp {
                         db.put("config_url", config.get("url"));
                         db.put("config_user", config.get("user"));
                         db.put("config_pass", config.get("pass"));
+                        db.put("config_dir", config.get("dir"));
                 }
 
                 return true;
@@ -112,28 +118,34 @@ public class scp {
         }
 
         public static boolean login (String user, String pass)
-        throws Exception
         {
-                String url = config.get("url") + "/login.php";
-                String html = http.get(url);
-                if (html == null)
-                        return false;
+                try {
+                        String url = config.get("url") + "/login.php";
+                        String html = http.get(url);
+                        if (html == null)
+                                return false;
 
-                String params = set_params(html, user, pass);
-                if (params == null) {
-                        Log.e(TAG, "URL is not valid OSTicket staff panel, staff panel by default is at scp directory. Make sure URL is correct");
+                        String params = set_params(html, user, pass);
+                        if (params == null) {
+                                Log.e(TAG, "URL is not valid OSTicket staff panel, staff panel by default is at scp directory. Make sure URL is correct");
+                                return false;
+                        }
+
+                        int retval = http.post(config.get("url") + "/" + LOGIN_ACT, params);
+                        if (retval == http.HTTP_FOUND)
+                                return true;
+                        if (retval == http.HTTP_OK)
+                                Log.e(TAG, "login failed, please check username and password");
+                        if (retval == http.HTTP_NOT_FOUND)
+                                Log.e(TAG, "Login http POST returned error");
+
+                        return false;
+                } catch(Exception e) {
+                
+                        if (scp.DEBUG)
+                                Log.e(TAG, "Login failed, unknown error");
                         return false;
                 }
-
-                int retval = http.post(config.get("url") + "/" + LOGIN_ACT, params);
-                if (retval == http.HTTP_FOUND)
-                        return true;
-                if (retval == http.HTTP_OK)
-                        Log.e(TAG, "login failed, please check username and password");
-                if (retval == http.HTTP_NOT_FOUND)
-                        Log.e(TAG, "Login http POST returned error");
-
-                return false;
         }
 
         private static String set_params(String html, String user, String pass) {
