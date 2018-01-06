@@ -16,6 +16,7 @@ import android.util.Log;
 import android.net.Uri;
 import android.content.Intent;
 import android.content.Context;
+import android.content.res.Resources;
 import android.app.Activity;
 import android.support.v4.content.FileProvider;
 import android.os.AsyncTask;
@@ -35,8 +36,8 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
         private static final int MAXTRACK = 50;
         private static char[] thread_track;     /* char size in Java == 2 bytes */
         private String file_provider;
-        private static final int IMG_WIDTH =  700;
-        private static final int IMG_HEIGHT=  700;
+        private static final int IMG_WIDTH =  200; /* in dp */
+        private static final int IMG_HEIGHT=  200;
 
         public ThreadAdapter(Context ctx)
         {
@@ -116,9 +117,13 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                 if (arr_content[0].equals("img")) {
                                         final String url = arr_content[1];
                                         ImageView iv = new ImageView(ctx);
-                                        iv.setLayoutParams(new LayoutParams(IMG_WIDTH, IMG_WIDTH));
+                                        iv.setLayoutParams(new LayoutParams(
+                                                                convert_dp(IMG_WIDTH),
+                                                                convert_dp(IMG_HEIGHT)));
                                         iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                                        iv.setPadding(20, 20, 20, 20);
+                                        iv.setCropToPadding(true);
+                                        int pad = convert_dp(5);
+                                        iv.setPadding(pad, pad, pad, pad);
                                         iv.setBackgroundResource(R.drawable.img);
                                         ll.addView(iv);
                                         
@@ -172,12 +177,18 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         else    txt =  arr_content[1];
 
                                         TextView lnk = new TextView(ctx);
-                                        lnk.setText("attachment : " + txt);
-                                        lnk.setTextColor(Color.BLUE);
-                                        lnk.setLayoutParams(new LayoutParams(
-                                                LayoutParams.MATCH_PARENT,
-                                                LayoutParams.WRAP_CONTENT
-                                        ));
+                                        lnk.setText(txt);
+                                        lnk.setTextColor(Color.BLACK);
+                                        LinearLayout.LayoutParams lp = new 
+                                                LinearLayout.LayoutParams(
+                                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                                LinearLayout.LayoutParams.WRAP_CONTENT
+                                        );
+                                        lp.setMargins(0, convert_dp(20), 0, 0);
+                                        lnk.setLayoutParams(lp);
+                                        int pad = convert_dp(5);
+                                        lnk.setPadding(pad, pad, pad, pad);
+                                        lnk.setBackgroundResource(R.drawable.img);
 
                                         ll.addView(lnk);
 
@@ -237,7 +248,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                         @Override
                         public void onClick(View v) {
                                 Intent i = new Intent(ctx, ImgView.class);
-                                i.putExtra("imguri", uri.toString());
+                                i.putExtra("imgpath", uri.getPath());
                                 ctx.startActivity(i);
                         }
                 });
@@ -256,19 +267,18 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
         }
 
         private void load_img(final String path, final ImageView iv) {
-                Log.i(TAG, "load_img called");
                 new Thread(new Runnable() {
                         @Override
                         public void run() {
                                 try {
-                                        final int MAX_SZ = ((IMG_WIDTH + IMG_HEIGHT) >> 1) - 100;
+                                        final int MAX_SZ = ((convert_dp(IMG_WIDTH) +
+                                                             convert_dp(IMG_HEIGHT)) >> 1);
 
                                         BitmapFactory.Options opt = new BitmapFactory.Options();
                                         opt.inJustDecodeBounds = true;
                                         BitmapFactory.decodeFile(path, opt);
 
                                         int sz = opt.outWidth >= opt.outHeight ? opt.outWidth : opt.outHeight;
-                                        Log.i(TAG, "orig size : " + sz);
                                         int res = 1;
                                         if (sz >= MAX_SZ) {
                                                 sz = sz >> 1;
@@ -282,7 +292,6 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         opt.inJustDecodeBounds = false;
 
                                         final Bitmap bitmap = BitmapFactory.decodeFile(path, opt);
-                                        Log.i(TAG, "new height : " + res);
                                         ((Activity) ctx).runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
@@ -326,9 +335,10 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                         String uri;
                         uri = "file://" + DIR + "/" + fname;
 
-                        if (iv != null)
+                        if (iv != null) {
                                 load_img(DIR + "/" + fname, iv);
                                 img_click(iv, Uri.parse(uri));
+                        }
                         if (tv != null) {
                                 Uri u = FileProvider.getUriForFile(ctx,
                                                 file_provider,
@@ -432,5 +442,11 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                 Log.e(TAG, "unable to setup attachments dir", e);
                         return null;
                 }
+        }
+
+        private int convert_dp(int dp) {
+                return (int) (dp * Resources.getSystem()
+                                     .getDisplayMetrics()
+                                     .density);
         }
 }

@@ -13,6 +13,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.net.Uri;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.github.chrisbanes.photoview.PhotoView;
@@ -20,9 +22,10 @@ import com.github.chrisbanes.photoview.OnPhotoTapListener;
 
 public class ImgView extends AppCompatActivity
 {
-        private String uri;
+        private String path;
         private static final String TAG = "osTDroid";
         private ActionBar ab;
+        private static final int MAX_SZ = 500;
         @Override
         protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
@@ -32,7 +35,7 @@ public class ImgView extends AppCompatActivity
                 ab = getSupportActionBar();
                 ab.setDisplayHomeAsUpEnabled(true);
 
-                PhotoView pv = (PhotoView) findViewById(R.id.imgview);
+                final PhotoView pv = (PhotoView) findViewById(R.id.imgview);
                 pv.setZoomable(true);
                 pv.setOnPhotoTapListener(new OnPhotoTapListener() {
                         @Override
@@ -48,15 +51,53 @@ public class ImgView extends AppCompatActivity
                 if (b == null)
                         return;
 
-                uri = b.getString("imguri");
-                if (uri == null)
+                path = b.getString("imgpath");
+                if (path == null)
                         return;
 
-                String[] s = uri.split("/");
+                String[] s = path.split("/");
                 String filename = s[s.length - 1];
                 this.setTitle(filename);
 
-                pv.setImageURI(Uri.parse(uri));
+                try {
+                        BitmapFactory.Options opt = new BitmapFactory.Options();
+                        opt.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(path, opt);
+
+                        int sz = opt.outWidth >= opt.outHeight ? opt.outWidth : opt.outHeight;
+                        int res = 1;
+                        if (sz >= MAX_SZ) {
+                                sz = sz >> 1;
+                                while (sz > MAX_SZ) {
+                                        sz = sz >> 1;
+                                        res = res << 1;
+                                }
+
+                                res = res << 1;
+                        }
+
+                        opt.inSampleSize = res;
+                        opt.inJustDecodeBounds = false;
+
+                        pv.setImageBitmap(BitmapFactory.decodeFile(path, opt));
+                } catch(Exception e) {
+                        if (scp.DEBUG)
+                                Log.e(TAG, "Error loading image");
+                }
+
+                new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                                final Bitmap bitmap = BitmapFactory.decodeFile(path);
+                                runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                        if (bitmap != null)
+                                                pv.setImageBitmap(bitmap);
+                                }
+                                });
+                        }
+                }).start();
         }
 
         @Override

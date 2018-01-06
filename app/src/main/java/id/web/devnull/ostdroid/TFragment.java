@@ -31,7 +31,6 @@ public class TFragment extends Fragment
         public void onCreate(Bundle savedInstanceState)
         {
                 super.onCreate(savedInstanceState);
-
                 adapter = new TAdapter(getActivity());
                 adapter.data = scp.list(ticket_state);
                 adapter.notifyDataSetChanged();
@@ -61,7 +60,6 @@ public class TFragment extends Fragment
                 adapter.write_index(ticket_state);
                 super.onDestroy();
         }
-
 
         private class bg extends AsyncTask<Integer, Void, List<Ticket>>
         {
