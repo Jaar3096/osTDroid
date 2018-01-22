@@ -23,9 +23,11 @@ public class TFragment extends Fragment
         private TAdapter adapter;
         private RecyclerView rcview;
         private LinearLayoutManager lmgr;
-        public static final String TAG = "osTDroid";
+        public static final String TAG  = "osTDroid";
 
-        public int ticket_state                = Ticket.OPEN;
+        public int ticket_state         = Ticket.OPEN;
+        private static int bg_task      = 0;
+        public static boolean activity_exit = false;
 
         @Override
         public void onCreate(Bundle savedInstanceState)
@@ -61,26 +63,35 @@ public class TFragment extends Fragment
                 super.onDestroy();
         }
 
+        /*
+         * close db only if there is no thread running
+         *
+         */
+        public static void fr_exit() {
+                if (bg_task > 0)
+                        return;
+                try {
+                        dbsetup.close();
+                        if (scp.DEBUG)
+                                Log.i(TAG, "Closing database");
+                } catch(Exception e) {
+                        Log.e("osTDroid", "Error closing database", e);
+                }
+        }
+
         private class bg extends AsyncTask<Integer, Void, List<Ticket>>
         {
-                private static final String url = "http://helpdesk.transkon.net.id/scp";
-                private static final String user = "dhani";
-                private static final String pass = "obi wan kenobi";
-                private final String dir = getContext().getExternalFilesDir(null).getAbsolutePath();
                 private int tstate = -1;
+
+                public bg() {
+                       bg_task = bg_task << 1;
+                       bg_task |= 0x01;
+                }
 
                 @Override
                 protected List<Ticket> doInBackground(Integer... ticket_state) {
                         try {
                                 tstate = ticket_state[0];
-                                if (scp.DEBUG)
-                                        Log.d(TAG, "loading configuration");
-
-                                if (!scp.setup(url, user, pass, dir)) {
-                                        Log.e(TAG, "Error setup");
-                                        return null;
-                                }
-
                                 return scp.sync(tstate);
                         } catch(Exception e) {
                                 Log.e(TAG, "thread error", e);
@@ -90,6 +101,12 @@ public class TFragment extends Fragment
 
                 @Override
                 protected void onPostExecute(List<Ticket> t) {
+                        bg_task = bg_task >> 1;
+                        if (activity_exit) {
+                                fr_exit();
+                                return;
+                        }
+
                         if (t == null) {
                                 Log.e(TAG, "Error loading ticket list");
                                 Snackbar.make(getActivity()

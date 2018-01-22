@@ -79,7 +79,7 @@ public class Ticket
                 if (this.dbid.length() == 0) {
                         if (scp.DEBUG)
                                 Log.d(TAG, "Ticket dbid is not set, tryng to get dbid from server");
-                        if (!scp.login(scp.config.get("user"), scp.config.get("pass")))
+                        if (scp.login(scp.config.get("user"), scp.config.get("pass")) > 0)
                                 if (scp.DEBUG)
                                         Log.d(TAG, "Error login to server");
 

@@ -2,7 +2,6 @@ package id.web.devnull.ostdroid;
 
 import android.os.Bundle;
 import android.os.AsyncTask;
-import android.util.Log;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v7.app.AppCompatActivity;
@@ -13,6 +12,7 @@ import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ProgressBar;
 import com.snappydb.DB;
 
 import java.util.List;
@@ -27,6 +27,7 @@ public class TView extends AppCompatActivity
         private DB db = dbsetup.db;
         private Ticket ticket;
         private BottomNavigationView bnav;
+        private ProgressBar pbar;
 
         private ThreadFragment fr_external;
         private ThreadFragment fr_internal;
@@ -48,6 +49,8 @@ public class TView extends AppCompatActivity
                 ActionBar ab;
                 Toolbar toolbar = (Toolbar)findViewById(R.id.view_toolbar);
                 setSupportActionBar(toolbar);
+                pbar   = (ProgressBar) findViewById(R.id.tview_pbar);
+                pbar.setVisibility(ProgressBar.GONE);
 
                 ab = getSupportActionBar();
                 ab.setDisplayHomeAsUpEnabled(true);
@@ -57,6 +60,7 @@ public class TView extends AppCompatActivity
                         this.tid = b.getString("tid");
 
                 if (this.tid != null) {
+                        this.setTitle(this.tid);
                         try {
                                 ticket = db.getObject(tid, Ticket.class);
                         } catch(Exception e) {
@@ -67,9 +71,10 @@ public class TView extends AppCompatActivity
                         fr_internal.data        = this.internal;
                 }
 
-                bnav();
-                Sync sync = new Sync();
-                sync.execute();
+                if (savedInstanceState != null)
+                        bnav(savedInstanceState.getInt("bnav"));
+                else    bnav(0);
+                sync();
         }
 
         @Override
@@ -88,7 +93,16 @@ public class TView extends AppCompatActivity
                 return super.onOptionsItemSelected(item);
         }
 
-        private void bnav() {
+        @Override
+        public void onSaveInstanceState(Bundle b) {
+                if (bnav != null) {
+                        b.putInt("bnav", bnav.getSelectedItemId());
+                }
+
+                super.onSaveInstanceState(b);
+        }
+
+        private void bnav(int tab) {
                 final Vdetail vdetail = new Vdetail();
                 vdetail.ticket = ticket;
                 bnav = (BottomNavigationView) findViewById(R.id.bnav);
@@ -128,7 +142,9 @@ public class TView extends AppCompatActivity
                         }
                 );
 
-                bnav.setSelectedItemId(R.id.tthread);
+                if (tab != 0)
+                        bnav.setSelectedItemId(tab);
+                else    bnav.setSelectedItemId(R.id.tthread);
         }
 
         private void split_thread(List<Tthread> data) {
@@ -174,25 +190,23 @@ public class TView extends AppCompatActivity
                 ticket.save_thread(data);
         }
 
-        private class Sync extends AsyncTask<Void, Void, List<Tthread>>
-        {
-                private int int_sz = 0;
-                private int ext_sz = 0;
+        private void sync() {
+                pbar.setVisibility(ProgressBar.VISIBLE);
 
+                new Thread(new Runnable() {
                 @Override
-                protected List<Tthread> doInBackground(Void... v) {
-                        try {
-                                return ticket.sync_thread();
-                        } catch(Exception e) {
-                                Log.e(TAG, "view thread error", e);
-                                return null;
-                        }
+                public void run() {
+                        final List<Tthread> thread_list = ticket.sync_thread();
+                                
+                        runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                        if (thread_list != null)
+                                                split_thread(thread_list);
+                                        pbar.setVisibility(ProgressBar.GONE);
+                                }
+                        });
                 }
-
-                @Override
-                protected void onPostExecute(List<Tthread> data) {
-                        if (data != null)
-                                split_thread(data);
-                }
+                }).start();
         }
 }

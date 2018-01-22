@@ -15,7 +15,6 @@ import android.net.Uri;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
 import com.github.chrisbanes.photoview.PhotoView;
 import com.github.chrisbanes.photoview.OnPhotoTapListener;
@@ -59,31 +58,25 @@ public class ImgView extends AppCompatActivity
                 String filename = s[s.length - 1];
                 this.setTitle(filename);
 
-                try {
-                        BitmapFactory.Options opt = new BitmapFactory.Options();
-                        opt.inJustDecodeBounds = true;
-                        BitmapFactory.decodeFile(path, opt);
+                BitmapFactory.Options opt = new BitmapFactory.Options();
+                opt.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(path, opt);
 
-                        int sz = opt.outWidth >= opt.outHeight ? opt.outWidth : opt.outHeight;
-                        int res = 1;
-                        if (sz >= MAX_SZ) {
+                int sz = opt.outWidth >= opt.outHeight ? opt.outWidth : opt.outHeight;
+                int res = 1;
+                if (sz >= MAX_SZ) {
+                        sz = sz >> 1;
+                        while (sz > MAX_SZ) {
                                 sz = sz >> 1;
-                                while (sz > MAX_SZ) {
-                                        sz = sz >> 1;
-                                        res = res << 1;
-                                }
-
                                 res = res << 1;
                         }
 
-                        opt.inSampleSize = res;
-                        opt.inJustDecodeBounds = false;
-
-                        pv.setImageBitmap(BitmapFactory.decodeFile(path, opt));
-                } catch(Exception e) {
-                        if (scp.DEBUG)
-                                Log.e(TAG, "Error loading image");
+                        res = res << 1;
                 }
+
+                opt.inSampleSize = res;
+                opt.inJustDecodeBounds = false;
+                pv.setImageBitmap(BitmapFactory.decodeFile(path, opt));
 
                 new Thread(new Runnable() {
                         @Override

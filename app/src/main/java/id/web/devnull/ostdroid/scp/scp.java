@@ -28,123 +28,70 @@ public class scp {
         private static final String TAG                 = "osTDroid";
         private static final Http http                  = new Http();
 
-        public static boolean setup(String url, String user, String pass, String dir)
-        throws Exception
+        public static final int E_LOGIN_NOSCP_URL       = 0x001;
+        public static final int E_LOGIN_USERPASS        = 0x002;
+        public static final int E_LOGIN_HTTP_POST       = 0x004;
+        public static final int E_LOGIN_UNKNOWN         = 0x008;
+        public static final int E_LOGIN_UNAVAIL         = 0x010;
+
+        public static boolean load_config()
         {
-                int w = 0;
-                String lnk = null;
+                if (DEBUG)
+                        Log.i(TAG, "loading configuration");
 
-                if (!db.exists("config_url")) {
-                        lnk = http.ck_url(url);
-                        if (lnk == null) {
-                                Log.e(TAG, "Malformed url or connection problem");
+                try {
+                        if (!db.exists("config_url"))
                                 return false;
-                        }
-
-                        config.put("url", lnk);
-                        config.put("user", user);
-                        config.put("pass", pass);
-                        config.put("dir", dir);
-
-                        w = 1;
-                } else {
+                        if (!db.exists("config_user"))
+                                return false;
+                        if (!db.exists("config_pass"))
+                                return false;
+                        if (!db.exists("config_dir"))
+                                return false;
+                
                         config.put("url", db.get("config_url"));
                         config.put("user", db.get("config_user"));
                         config.put("pass", db.get("config_pass"));
-                        if (dir == null)
-                                config.put("dir", db.get("config_dir"));
-                        else    config.put("dir", dir);
-                }
-
-                if(!config.get("url").matches(".*" + url + ".*") 
-                                || !user.equals(config.get("user"))
-                                || !pass.equals(config.get("pass")))
-                {
-                        lnk = http.ck_url(url);
-                        if (lnk == null) {
-                                Log.e(TAG, "Malformed url or connection problem");
-                                return false;
-                        }
-                        
-                        config.put("url", lnk);
-                        config.put("user", user);
-                        config.put("pass", pass);
-                        config.put("dir", dir);
-
-                        http.rst_cookie();
-                        w = 1;
-                }
-
-                if (w == 1) {
-                        db.put("config_url", config.get("url"));
-                        db.put("config_user", config.get("user"));
-                        db.put("config_pass", config.get("pass"));
-                        db.put("config_dir", config.get("dir"));
+                        config.put("dir", db.get("config_dir"));
+                } catch(Exception e) {
+                        return false;
                 }
 
                 return true;
         }
 
-        public static int islogin(String html) {
-                if (html == null) {
-                        if (scp.DEBUG)
-                                Log.d(TAG, "islogin requires html tags, null received");
-                        return -1;
-                }
-
-                try {
-                        Document doc = Jsoup.parse(html);
-        
-                        if (doc != null) {
-                                Elements forms = doc.select("form");
-                                for (Element form : forms) {
-                                        String action = form.attr("action");
-                                        if (action.matches("login.php.*"))
-                                        return 0;
-                                }
-        
-                                Element navbar = doc.getElementById("info");
-                                Elements links = navbar.getElementsByTag("a");
-        
-                                for (Element link : links) {
-                                        if (link.text().matches(".*Log Out.*"))
-                                                return 1;
-                                }
-                        }
-                } catch (Exception e) {
-                        Log.e(TAG, "URL is nor valid OSTicket web", e);
-                }
-                return -1;
-        }
-
-        public static boolean login (String user, String pass)
+        public static int login (String user, String pass)
         {
+                int err = 0;
                 try {
                         String url = config.get("url") + "/login.php";
                         String html = http.get(url);
-                        if (html == null)
-                                return false;
+                        if (html == null) {
+                                err |= E_LOGIN_UNAVAIL;
+                                return err;
+                        }
 
                         String params = set_params(html, user, pass);
                         if (params == null) {
-                                Log.e(TAG, "URL is not valid OSTicket staff panel, staff panel by default is at scp directory. Make sure URL is correct");
-                                return false;
+                                err |= E_LOGIN_NOSCP_URL;
+                                return err;
                         }
 
                         int retval = http.post(config.get("url") + "/" + LOGIN_ACT, params);
                         if (retval == http.HTTP_FOUND)
-                                return true;
-                        if (retval == http.HTTP_OK)
-                                Log.e(TAG, "login failed, please check username and password");
-                        if (retval == http.HTTP_NOT_FOUND)
-                                Log.e(TAG, "Login http POST returned error");
+                                return 0;
 
-                        return false;
+                        if (retval == http.HTTP_OK)
+                                err |= E_LOGIN_USERPASS;
+                        if (retval == http.HTTP_NOT_FOUND)
+                                err |= E_LOGIN_HTTP_POST;
+
+                        return err;
                 } catch(Exception e) {
-                
-                        if (scp.DEBUG)
-                                Log.e(TAG, "Login failed, unknown error");
-                        return false;
+                        if (DEBUG)
+                                Log.e(TAG, "Login error", e);
+                        err |= E_LOGIN_UNKNOWN;
+                        return err;
                 }
         }
 
@@ -252,7 +199,7 @@ public class scp {
                 
                 String href= null;
                 
-                if (!login(config.get("user"), config.get("pass"))) {
+                if (login(config.get("user"), config.get("pass")) > 1) {
                         Log.e(TAG, "Login error");
                         return null;
                 }

@@ -17,6 +17,11 @@ public class Vdetail extends Fragment
         public Ticket ticket = null;
 
         @Override
+        public void onCreate(Bundle b) {
+                super.onCreate(b);
+                this.setRetainInstance(true);
+        }
+        @Override
         public View onCreateView(LayoutInflater li, ViewGroup vg, Bundle savedInstanceState) {
                ViewGroup v = (ViewGroup) li.inflate(R.layout.vdetail, vg, false);
                TextView vid     = v.findViewById(R.id.vid);

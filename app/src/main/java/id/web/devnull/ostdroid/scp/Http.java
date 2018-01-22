@@ -30,6 +30,16 @@ public class Http {
         private static final String TAG         = "osTDroid";
         private static final DB db              = dbsetup.db;
 
+
+        public int errno                        = 0;
+        public static final int E_HTTP_MALFORM  = 0x01;
+        public static final int E_HTTP_TLS      = 0x02;
+        public static final int E_HTTP_REFUSED  = 0x04;
+        public static final int E_HTTP_UNAVAIL  = 0x08;
+        public static final int E_HTTP_UNKNOWN  = 0x10;
+        public static final int E_HTTP_CONNFAILED= 0x20;
+        public static final int E_HTTP_NOTFOUND = 0x40;
+
         public Http()
         {
                 cookie_man();
@@ -83,16 +93,9 @@ public class Http {
                 }
         }
 
-        public String ck_url (String url) {
-                int unspec = 0;
+        public int ck_url (String url) {
                 URL link = null;
-                HttpsURLConnection secure;
-                HttpURLConnection unsecure;
-
-                if (!url.matches("http.*")) {
-                        unspec = 1;
-                        url = "https://" + url;
-                }
+                int res = 0;
 
                 try {
                         link = new URL(url);
@@ -101,39 +104,23 @@ public class Http {
                         conn = link.openConnection();
                         conn.connect();
                 } catch(MalformedURLException e) {
-                        Log.e(TAG, "url is not valid");
-                        return null;
-                }
-                catch(SSLHandshakeException ssl_err) {
-                        if (unspec == 0) {
-                                Log.e(TAG, "SSL/TLS Hnadshake failed, make sure tls certificate is valid and trusted");
-                                return null;
-                        } else {
-                                url = url.replace("https", "http");
-                                try {
-                                        link = new URL(url);
-                                        if (scp.DEBUG)
-                                                Log.d(TAG, "Trying to connect to " + link.toString());
-                                        conn = link.openConnection();
-                                        conn.connect();
-
-                                } catch (IOException er) {
-                                        Log.e(TAG, "Unspecified http or https in the url, tried both but failed", er);
-                                        return null;
-                                }
-                        }
+                        res |= E_HTTP_MALFORM;
+                        return res;
+                } catch(SSLHandshakeException ssl_err) {
+                        res |= E_HTTP_TLS;
+                        return res;
                 } catch(ConnectException ce) {
-                        Log.e(TAG, "Connection refused, check if the webserver running or check firewall.", ce);
-                        return null;
+                        res |= E_HTTP_REFUSED;
+                        return res;
                 } catch(IOException ce) {
-                        Log.e(TAG, "Connect failed, check connection", ce);
-                        return null;
+                        res |= E_HTTP_UNAVAIL;
+                        return res;
                 } catch(Exception exc) {
-                        Log.e(TAG, "Failed to connect to " + link.toString() + ", unkown error", exc);
-                        return null;
+                        res |= E_HTTP_UNKNOWN;
+                        return res;
                 }
                 
-                return link.toString();
+                return res;
         }
 
         private boolean set_conn(String url) {
@@ -149,35 +136,49 @@ public class Http {
                 }
         }
 
-        public String get(String url) throws Exception {
+        public String get(String url) {
                 int response = 0;
                 StringBuffer html = null;
 
                 if (!set_conn(url)) {
+                        errno |= E_HTTP_CONNFAILED;
                         if (scp.DEBUG)
-                                Log.d(TAG, "Error setting connection");
+                                Log.e(TAG, "Connection to " + url + " failed");
                         return null;
                 }
 
-                if (conn instanceof HttpURLConnection) {
-                        HttpURLConnection connPlain = (HttpURLConnection) conn;
-                        connPlain.setRequestMethod("GET");
-                        connPlain.setUseCaches(true);
-                        connPlain.setRequestProperty("User-Agent", USER_AGENT);
-                        connPlain.setFollowRedirects(true);
-                        connPlain.setInstanceFollowRedirects(true);
+                try {
+                        HttpURLConnection sock = (HttpURLConnection) conn;
+                        sock.setRequestMethod("GET");
+                        sock.setUseCaches(true);
+                        sock.setRequestProperty("User-Agent", USER_AGENT);
+                        sock.setFollowRedirects(true);
+                        sock.setInstanceFollowRedirects(true);
         
-	                connPlain.setRequestProperty("Accept",
-		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
-	                connPlain.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+	                sock.setRequestProperty("Accept", "*/*");
+	                sock.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
 
 	                if (cookie != null)
-                                connPlain.setRequestProperty("Cookie", cookie);
+                                sock.setRequestProperty("Cookie", cookie);
         
-                        response = connPlain.getResponseCode();
+                        response = sock.getResponseCode();
+                        if (scp.DEBUG)
+                                Log.i(TAG, "HTTP GET returns " + response);
                         
-	                BufferedReader stream =
-                        new BufferedReader(new InputStreamReader(connPlain.getInputStream()));
+                        InputStream is;
+                        
+                        if (response == HTTP_OK)
+                                is = sock.getInputStream();
+                        else    is = sock.getErrorStream();
+
+                        if (is == null) {
+                                if (scp.DEBUG)
+                                        Log.e(TAG, "Read null data from http socket");
+                                return null;
+                        }
+
+	                BufferedReader stream = new BufferedReader(new InputStreamReader(is));
+
 	                String ln;
 	                html = new StringBuffer();
         
@@ -187,7 +188,7 @@ public class Http {
         
 	                stream.close();
         
-                        header = connPlain.getHeaderFields();
+                        header = sock.getHeaderFields();
 	                cookies = header.get("Set-Cookie");
 
 	                if (cookies != null) {
@@ -205,13 +206,22 @@ public class Http {
                                         }
                                 }
                         }
+                } catch(FileNotFoundException fnf) {
+                        if (scp.DEBUG)
+                                Log.e(TAG, "HTTP 4XX", fnf);
+                        errno |= E_HTTP_NOTFOUND;
+                        return null;
+                } catch(Exception e) {
+                        if (scp.DEBUG)
+                                Log.e(TAG, "HTTP GET error", e);
+                        errno |= E_HTTP_UNKNOWN;
+                        return null;
                 }
-                
+               
                 if (html != null)
                         return html.toString();
 
-                if (scp.DEBUG)
-                        Log.d(TAG, "Connection is not HttpURLConnection nor HttpsURLConnection");
+                errno |= E_HTTP_UNKNOWN;
                 return null;
         }
 
@@ -229,7 +239,20 @@ public class Http {
                         response = sock.getResponseCode();
                         header = sock.getHeaderFields();
 
-                        InputStream data = sock.getInputStream();
+                        if (scp.DEBUG)
+                                Log.i(TAG, "HTTP response code " + response);
+                        InputStream data;
+
+                        if (response == HTTP_OK)
+                                data = sock.getInputStream();
+                        else    data = sock.getErrorStream();
+
+                        if (data == null) {
+                                if (scp.DEBUG)
+                                        Log.e(TAG, "Read null data from http socket");
+                                return null;
+                        }
+
                         byte[] buf = new byte[1024 * 8];
                         int bytes_read;
                         File out = File.createTempFile("ost", ".tmp");
@@ -244,70 +267,49 @@ public class Http {
                 } catch(Exception e) {
                         if (scp.DEBUG)
                                 Log.d(TAG, "Error download data from " + url, e);
+                        errno |= E_HTTP_UNKNOWN;
                         return null;
                 }
         }
 
-        public int post(String url, String params) throws Exception {
+        public int post(String url, String params) {
                 int response = 0;
-                if (!set_conn(url))
+                if (!set_conn(url)) {
+                        errno |= E_HTTP_CONNFAILED;
                         return 0;
-
-                URL lnk = new URL(url);
-                String host = lnk.getHost();
-
-                if (conn instanceof HttpURLConnection) {
-                        HttpURLConnection connPlain = (HttpURLConnection) conn;
-	                connPlain.setUseCaches(false);
-	                connPlain.setRequestMethod("POST");
-	                connPlain.setRequestProperty("Host", host);
-	                connPlain.setRequestProperty("User-Agent", USER_AGENT);
-	                connPlain.setRequestProperty("Accept",
-		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
-	                connPlain.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-		        connPlain.setRequestProperty("Cookie", cookie);
-	                connPlain.setRequestProperty("Connection", "keep-alive");
-	                connPlain.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-	                connPlain.setRequestProperty("Content-Length", Integer.toString(params.length()));
-                        connPlain.setFollowRedirects(false);
-                        connPlain.setInstanceFollowRedirects(false);
-                
-	                connPlain.setDoOutput(true);
-	                connPlain.setDoInput(true);
-                
-	                DataOutputStream wr = new DataOutputStream(connPlain.getOutputStream());
-	                wr.writeBytes(params);
-	                wr.flush();
-	                wr.close();
-        
-                        response = connPlain.getResponseCode();
                 }
 
-                if (conn instanceof HttpsURLConnection) {
-                        HttpsURLConnection connSsl = (HttpsURLConnection) conn;
-	                connSsl.setUseCaches(false);
-	                connSsl.setRequestMethod("POST");
-	                connSsl.setRequestProperty("Host", host);
-	                connSsl.setRequestProperty("User-Agent", USER_AGENT);
-	                connSsl.setRequestProperty("Accept",
+                try {
+                        URL lnk = new URL(url);
+                        String host = lnk.getHost();
+
+                        HttpURLConnection sock = (HttpURLConnection) conn;
+	                sock.setUseCaches(false);
+	                sock.setRequestMethod("POST");
+	                sock.setRequestProperty("Host", host);
+	                sock.setRequestProperty("User-Agent", USER_AGENT);
+	                sock.setRequestProperty("Accept",
 		                "text/html,text/csv,application/xhtml+xml;q=0.9,*/*;q=0.8");
-	                connSsl.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-		        connSsl.setRequestProperty("Cookie", cookie);
-	                connSsl.setRequestProperty("Connection", "keep-alive");
-	                connSsl.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-	                connSsl.setRequestProperty("Content-Length", Integer.toString(params.length()));
-                        connSsl.setFollowRedirects(false);
-                        connSsl.setInstanceFollowRedirects(false);
+	                sock.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+		        sock.setRequestProperty("Cookie", cookie);
+	                sock.setRequestProperty("Connection", "keep-alive");
+	                sock.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+	                sock.setRequestProperty("Content-Length", Integer.toString(params.length()));
+                        sock.setFollowRedirects(false);
+                        sock.setInstanceFollowRedirects(false);
                 
-	                connSsl.setDoOutput(true);
-	                connSsl.setDoInput(true);
+	                sock.setDoOutput(true);
+	                sock.setDoInput(true);
                 
-	                DataOutputStream wr = new DataOutputStream(connSsl.getOutputStream());
+	                DataOutputStream wr = new DataOutputStream(sock.getOutputStream());
 	                wr.writeBytes(params);
 	                wr.flush();
 	                wr.close();
         
-                        response = connSsl.getResponseCode();
+                        response = sock.getResponseCode();
+                } catch(Exception e) {
+                        errno |= E_HTTP_UNKNOWN;
+                        return 0;
                 }
 
                 return response;

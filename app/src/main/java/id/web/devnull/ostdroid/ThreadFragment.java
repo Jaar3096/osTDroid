@@ -23,9 +23,7 @@ public class ThreadFragment extends Fragment
         public ThreadAdapter adapter;
         private RecyclerView rcview;
         private LinearLayoutManager lmgr;
-
         public static final String TAG = "osTDroid";
-
         public List<Tthread> data = null;
 
         @Override

@@ -10,6 +10,7 @@ import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -33,10 +34,10 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
         private Context ctx;
         private LinearLayout ll = null;
         private static String DIR = null;
-        private static final int MAXTRACK = 50;
-        private static char[] thread_track;     /* char size in Java == 2 bytes */
+        private static final int MAXTRACK = 50;         /* Track thread 50 * 16 bit */
+        private static char[] thread_track;             /* char size in Java is 2 bytes */
         private String file_provider;
-        private static final int IMG_WIDTH =  200; /* in dp */
+        private static final int IMG_WIDTH =  200;      /* ImageView size in dp */
         private static final int IMG_HEIGHT=  200;
 
         public ThreadAdapter(Context ctx)
@@ -48,6 +49,12 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                 this.file_provider = BuildConfig.APPLICATION_ID + ".provider";
         }
 
+        /*
+         * These three routines is necessary
+         * to prevent duplicate item on recyclerview scroll.
+         * Because we dynamically adding view to LinearLayout ll
+         * for every item in linked list data.content
+         */
         private boolean thread_ckbit(int pos) {
                 if ((thread_track[pos >> 4] & 0x01 << (pos & 0x0f)) > 0)
                         return true;
@@ -130,7 +137,6 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         Uri uri =  ck_file(url, false);
                                         if (uri != null) {
                                                 load_img(uri.getPath(), iv);
-                                                img_click(iv, uri);
 
                                                 i++;
                                                 continue;
@@ -217,6 +223,9 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         LayoutParams.MATCH_PARENT,
                                         LayoutParams.WRAP_CONTENT
                                 ));
+                                t.setTextColor(Color.BLACK);
+                                t.setTextSize((float) convert_dp(5));
+                                t.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
 
                                 ll.addView(t);
                                 i++;
@@ -266,6 +275,9 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                 });
         }
 
+        /*
+         * load and down sampling image to fit ImageView size
+         */
         private void load_img(final String path, final ImageView iv) {
                 new Thread(new Runnable() {
                         @Override
@@ -274,11 +286,13 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         final int MAX_SZ = ((convert_dp(IMG_WIDTH) +
                                                              convert_dp(IMG_HEIGHT)) >> 1);
 
-                                        BitmapFactory.Options opt = new BitmapFactory.Options();
+                                        BitmapFactory.Options opt = new
+                                                        BitmapFactory.Options();
                                         opt.inJustDecodeBounds = true;
                                         BitmapFactory.decodeFile(path, opt);
 
-                                        int sz = opt.outWidth >= opt.outHeight ? opt.outWidth : opt.outHeight;
+                                        int sz = opt.outWidth >= opt.outHeight ?
+                                                opt.outWidth : opt.outHeight;
                                         int res = 1;
                                         if (sz >= MAX_SZ) {
                                                 sz = sz >> 1;
@@ -291,11 +305,15 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                         opt.inSampleSize = res;
                                         opt.inJustDecodeBounds = false;
 
-                                        final Bitmap bitmap = BitmapFactory.decodeFile(path, opt);
+                                        final Bitmap bitmap = BitmapFactory
+                                                              .decodeFile(path, opt);
                                         ((Activity) ctx).runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
+                                                        Uri uri = Uri
+                                                                .parse("file://" + path);
                                                         iv.setImageBitmap(bitmap);
+                                                        img_click(iv, uri);
                                                 }
                                         });
                                 } catch (Exception e) {
@@ -335,10 +353,8 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                         String uri;
                         uri = "file://" + DIR + "/" + fname;
 
-                        if (iv != null) {
+                        if (iv != null)
                                 load_img(DIR + "/" + fname, iv);
-                                img_click(iv, Uri.parse(uri));
-                        }
                         if (tv != null) {
                                 Uri u = FileProvider.getUriForFile(ctx,
                                                 file_provider,

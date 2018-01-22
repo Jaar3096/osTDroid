@@ -1,2 +1,0 @@
-1. Program di close thread belum selesai, program crash karena db di close.
-2. Program crash waktu ganti orientation, source bug: ticket == null;
