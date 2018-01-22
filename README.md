@@ -1,4 +1,4 @@
-#osTDroid
+# osTDroid
 
 This is an Android client for osTicket <http://osticket.com> an Open Source Ticket System.
 
