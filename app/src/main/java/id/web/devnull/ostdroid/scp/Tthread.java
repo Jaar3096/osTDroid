@@ -14,7 +14,7 @@ public class Tthread implements Serializable
         public static final int EXTERNAL = 0x02;
         private static final String DATE_REGEX = "[0-9]+/[0-9]+/[0-9]+.*";
         private static final String SEP = "\\0";
-        private static final String FILE_REGEX = "^/file.php\\?.*";
+        private static final String FILE_REGEX = ".*/file.php\\?.*";
         private static String HOST = null;
 
         public int type;

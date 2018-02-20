@@ -4,9 +4,13 @@ import android.support.v4.app.Fragment;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuInflater;
 import android.os.Bundle;
 import android.os.AsyncTask;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.design.widget.Snackbar;
@@ -33,12 +37,12 @@ public class TFragment extends Fragment
         public void onCreate(Bundle savedInstanceState)
         {
                 super.onCreate(savedInstanceState);
-                adapter = new TAdapter(getActivity());
-                adapter.data = scp.list(ticket_state);
+                adapter = new TAdapter(getActivity(), scp.list(ticket_state));
                 adapter.notifyDataSetChanged();
                 this.setRetainInstance(true);
                 bg task =  new bg();
                 task.execute(ticket_state);
+                setHasOptionsMenu(true);
         }
 
         @Override
@@ -55,6 +59,38 @@ public class TFragment extends Fragment
                 rcview.setAdapter(adapter);
 
                 return v;
+        }
+
+        @Override
+        public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+                inflater.inflate(R.menu.menu_main, menu);
+
+                SearchView search = (SearchView) menu.findItem(R.id.action_search).getActionView();
+                search.setOnQueryTextListener(
+                        new SearchView.OnQueryTextListener() {
+                                @Override
+                                public boolean onQueryTextSubmit(String q) {
+                                        adapter.getFilter().filter(q);
+                                        return false;
+                                }
+
+                                @Override
+                                public boolean onQueryTextChange(String q) {
+                                        adapter.getFilter().filter(q);
+                                        return false;
+                                }
+                        }
+                );
+
+                search.setOnCloseListener(
+                        new SearchView.OnCloseListener() {
+                                @Override
+                                public boolean onClose() {
+                                        adapter.getFilter().filter(null);
+                                        return true;
+                                }
+                        }
+                );
         }
 
         @Override

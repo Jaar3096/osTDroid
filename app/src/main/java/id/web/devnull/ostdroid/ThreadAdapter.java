@@ -156,7 +156,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
 
                                         TextView lnk = new TextView(ctx);
                                         lnk.setText(txt);
-                                        lnk.setTextColor(Color.BLUE);
+                                        lnk.setTextColor(Color.MAGENTA);
                                         lnk.setLayoutParams(new LayoutParams(
                                                 LayoutParams.MATCH_PARENT,
                                                 LayoutParams.WRAP_CONTENT
@@ -184,29 +184,28 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
 
                                         TextView lnk = new TextView(ctx);
                                         lnk.setText(txt);
-                                        lnk.setTextColor(Color.BLACK);
+                                        lnk.setTextColor(Color.DKGRAY);
                                         LinearLayout.LayoutParams lp = new 
                                                 LinearLayout.LayoutParams(
                                                 LinearLayout.LayoutParams.MATCH_PARENT,
                                                 LinearLayout.LayoutParams.WRAP_CONTENT
                                         );
-                                        lp.setMargins(0, convert_dp(20), 0, 0);
+                                        lp.setMargins(0, convert_dp(30), 0, 0);
                                         lnk.setLayoutParams(lp);
-                                        int pad = convert_dp(5);
+                                        int pad = convert_dp(10);
                                         lnk.setPadding(pad, pad, pad, pad);
                                         lnk.setBackgroundResource(R.drawable.img);
 
                                         ll.addView(lnk);
 
                                         Uri uri = ck_file(url, true);
-                                        Log.i(TAG, url);
                                         if (uri != null) {
                                                 tv_click(lnk, uri);
                                                 i++;
                                                 continue;
                                         } else {
                                                 if (scp.DEBUG)
-                                                        Log.e(TAG, "uri == null");
+                                                        Log.e(TAG, "Attachment uri is null, will download from server");
                                         }
 
                                         download dl = new download(pos, i, "attach");
@@ -243,7 +242,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                                 return FileProvider.getUriForFile(ctx,
                                                 file_provider,
                                                 new File(file));
-                        } else    return null;
+                        } else  return null;
                 } catch(Exception ex) {
                         if (scp.DEBUG)
                         Log.e(TAG, "check file failed", ex);
@@ -374,7 +373,7 @@ public class ThreadAdapter extends RecyclerView.Adapter<ThreadAdapter.ThreadVHol
                         if (DIR == null)
                                 return null;
                         tempfile = http.get_byte(url);
-                        if (tempfile== null) {
+                        if (tempfile == null) {
                                 if (scp.DEBUG)
                                         Log.e(TAG, "unable to download data from "
                                                    + url);

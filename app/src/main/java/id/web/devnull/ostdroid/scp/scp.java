@@ -247,11 +247,14 @@ public class scp {
 
                 int i = 0;
                 while ((ln = inbuf.readLine()) != null) {
+                        ln = ln.replaceAll("(\"[^,\"]+),([^,\"]+\")", "$1|$2");
                         ln = ln.replaceAll("\"", "");
                         tmp = ln.split(",", -1);
 
                         if (tmp.length < CSV_COL) {
-                                Log.e(TAG, "CSV column < " + CSV_COL);
+                                Log.e(TAG, "Error: CSV column count =  " +
+                                            tmp.length + " which is less than " + CSV_COL);
+                                Log.e(TAG, ln);
                                 return null;
                         }
 
@@ -259,6 +262,7 @@ public class scp {
                         if (i == 0) {
                                 int j;
                                 for (j = 0; j < tmp.length; j++) {
+                                        tmp[j] = tmp[j].replaceAll("\"", "");
                                         switch(tmp[j]) {
                                                 case "Ticket Number":
                                                         TICKET_ID = j;
@@ -350,7 +354,7 @@ public class scp {
                                 ticket = new Ticket();
                                 ticket.tid      = tmp[TICKET_ID];
                                 ticket.date     = tmp[DATE];
-                                ticket.title    = tmp[TITLE];
+                                ticket.title    = tmp[TITLE].replaceAll("\\|", ",");
                                 ticket.user     = tmp[USER];
                                 ticket.user_email = tmp[USER_EMAIL];
                                 ticket.prio     = tmp[PRIO];
