@@ -262,7 +262,6 @@ public class scp {
                         if (i == 0) {
                                 int j;
                                 for (j = 0; j < tmp.length; j++) {
-                                        tmp[j] = tmp[j].replaceAll("\"", "");
                                         switch(tmp[j]) {
                                                 case "Ticket Number":
                                                         TICKET_ID = j;
